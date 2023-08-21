@@ -727,6 +727,11 @@ cmake_dependent_option(
   "Whether to build the flash_attention kernel for scaled dot product attention" ON
   "USE_CUDA AND NOT ROCM AND NOT CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 11.6" OFF)
 
+if(USE_FLASH_ATTENTION)
+  message("USE_FLASH_ATTENTION SET, setting max jobs to 1")
+  set(ENV{MAX_JOBS} "1")
+endif()
+
 if(DEBUG_CUDA)
   string(APPEND CMAKE_CUDA_FLAGS_DEBUG " -lineinfo")
   string(APPEND CMAKE_CUDA_FLAGS_RELWITHDEBINFO " -lineinfo")
