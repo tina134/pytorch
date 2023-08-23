@@ -1502,7 +1502,7 @@ def wrap_to_fake_tensor_and_record(
             tx.output.tracked_fakes_id_to_source[id(e)].append(source)
         tx.output.tensor_weakref_to_sizes_strides[WeakIdRef(e)] = {
             "size": fake_e.size(),
-            "stride": fake_e.stride(),
+            "stride": fake_e.stride() if not e.is_nested else None,
         }
         return fake_e
     else:
