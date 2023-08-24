@@ -86,7 +86,9 @@ struct C10_API PyObjectSlot {
   //
   // NB: this lives in header so that we can avoid actually creating the
   // c10::optional
-  c10::optional<PyObject*> check_pyobj(PyInterpreter* self_interpreter) const {
+  c10::optional<PyObject*> check_pyobj(
+      PyInterpreter* self_interpreter,
+      bool definitely_not_hermetic = false) const {
     // Note [Memory ordering on Python interpreter tag]
     impl::PyInterpreter* interpreter =
         pyobj_interpreter_.load(std::memory_order_acquire);
@@ -99,7 +101,8 @@ struct C10_API PyObjectSlot {
       return c10::nullopt;
     } else if (interpreter == self_interpreter) {
       // NB: pyobj_ could still be null!
-      if (c10::impl::HermeticPyObjectTLS::get_state()) {
+      if (!definitely_not_hermetic &&
+          c10::impl::HermeticPyObjectTLS::get_state()) {
         return c10::nullopt;
       } else {
         return c10::make_optional(_unchecked_untagged_pyobj());
@@ -125,7 +128,7 @@ struct C10_API PyObjectSlot {
   bool check_interpreter(PyInterpreter* interpreter);
 
   // Check if the PyObjectSlot is holding a PyObject, owned or non-owned
-  bool has_pyobj();
+  bool has_pyobj(bool definitely_not_hermetic = false);
 
   bool owns_pyobj();
 
