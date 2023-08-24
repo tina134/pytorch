@@ -30,6 +30,7 @@ from typing import Any, Tuple
 
 from torch.fx.passes.infra.pass_manager import PassManager
 from torch.ao.quantization.pt2e.duplicate_dq_pass import DuplicateDQPass
+from torch.ao.quantization.pt2e.port_metadata_pass import PortNodeMetaForQDQ
 
 __all__ = [
     "prepare_pt2e",
@@ -101,6 +102,8 @@ def convert_pt2e(
     pm = PassManager([DuplicateDQPass()])
     model = pm(model).graph_module
 
+    pm = PassManager([PortNodeMetaForQDQ()])
+    model = pm(model).graph_module
     if use_reference_representation:
         model = reference_representation_rewrite(model)
     return model
