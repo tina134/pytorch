@@ -1356,7 +1356,8 @@ jobs:
 workflows:
   test_ignore:
     jobs:
-      - test_please_ignore
+      - test_please_ignore:
+          context: org-member
   build:
     jobs:
       - binary_ios_build:
