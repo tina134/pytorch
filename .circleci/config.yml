@@ -401,6 +401,13 @@ binary_windows_params: &binary_windows_params
 # Job specs
 ##############################################################################
 jobs:
+  test_please_ignore:
+    resource_class: small
+    machine:
+      image: ubuntu-2004:202104-01
+    steps:
+    - checkout
+
   binary_ios_build:
     <<: *pytorch_ios_params
     macos:
@@ -1347,6 +1354,9 @@ jobs:
 # Workflows
 ##############################################################################
 workflows:
+  test_ignore:
+    jobs:
+      - test_please_ignore
   build:
     jobs:
       - binary_ios_build:

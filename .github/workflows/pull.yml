@@ -1,14 +1,14 @@
 name: pull
 
 on:
-  pull_request:
-    branches-ignore:
-      - nightly
-  push:
-    branches:
-      - main
-      - release/*
-      - landchecks/*
+  # pull_request:
+  #   branches-ignore:
+  #     - nightly
+  # push:
+  #   branches:
+  #     - main
+  #     - release/*
+  #     - landchecks/*
   workflow_dispatch:
   schedule:
     - cron: 29 8 * * *  # about 1:29am PDT
