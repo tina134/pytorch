@@ -1,4 +1,5 @@
 import copyreg
+import functools
 import sys
 import traceback
 import warnings
@@ -383,17 +384,6 @@ def _rebuild_qtensor(
     # OrderedDict.  See Note [Don't serialize hooks]
     tensor._backward_hooks = backward_hooks
     return tensor
-
-
-def _rebuild_buffer(data, requires_grad, persistent):
-    buffer = torch.nn.Buffer(data, requires_grad, persistent)
-    return buffer
-
-
-def _rebuild_buffer_with_state(data, requires_grad, persistent, state):
-    buffer = torch.nn.Buffer(data, requires_grad, persistent)
-    buffer = _set_obj_state(buffer, state)
-    return buffer
 
 
 def _rebuild_parameter(data, requires_grad, backward_hooks):
@@ -850,3 +840,13 @@ def classproperty(func):
 # Whether we are compiling with torch.compile or not
 def is_compiling():
     return False
+
+
+@functools.lru_cache(2)
+def _get_device_module(device_type: str):
+    device_module = getattr(torch, device_type, None)
+    if device_module is None:
+        raise RuntimeError(
+            f"Device '{device_type}' does not have a corresponding module registered as 'torch.{device_type}'."
+        )
+    return device_module

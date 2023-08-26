@@ -18,7 +18,7 @@ from torch._inductor import config
 from torch._inductor.compile_fx import compile_fx
 from torch._inductor.utils import override_lowering, run_and_get_code
 from torch.ao.quantization.quantize_pt2e import convert_pt2e, prepare_pt2e
-from torch.ao.quantization.quantizer import X86InductorQuantizer
+from torch.ao.quantization.quantizer.x86_inductor_quantizer import X86InductorQuantizer
 from torch.testing import FileCheck
 from torch.testing._internal.common_cuda import SM80OrLater
 from torch.testing._internal.common_quantization import (
@@ -286,11 +286,7 @@ class OptimizeForInferenceTemplate(TestCase):
             if self.device == "cpu" and dtype == torch.float16:
                 continue
 
-            if (
-                self.device == "cuda"
-                and not dtype == torch.bfloat16
-                and not SM80OrLater
-            ):
+            if self.device == "cuda" and dtype == torch.bfloat16 and not SM80OrLater:
                 continue
 
             mod = (

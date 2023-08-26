@@ -1257,7 +1257,7 @@ be the PyTorch datatype corresponding to the NumPy's scalar's datatype.
 
 When :attr:`obj` is none of the above but a scalar, or a sequence of scalars then the
 returned tensor will, by default, infer its datatype from the scalar values, be on the
-CPU device, and not share its memory.
+current default device, and not share its memory.
 
 .. seealso::
 
@@ -1282,7 +1282,8 @@ Keyword args:
            If ``False`` then the returned tensor shares its memory with :attr:`obj` and an
            error is thrown if it cannot.
     device (:class:`torch.device`, optional): the device of the returned tensor.
-           Default: ``None``, which causes the device of :attr:`obj` to be used.
+           Default: ``None``, which causes the device of :attr:`obj` to be used. Or, if
+           :attr:`obj` is a Python sequence, the current default device will be used.
     requires_grad (bool, optional): whether the returned tensor requires grad.
            Default: ``False``, which causes the returned tensor not to require a gradient.
            If ``True``, then the returned tensor will require a gradient, and if :attr:`obj`
@@ -9773,7 +9774,7 @@ Args:
 Example::
 
     >>> a = torch.zeros(8, 8)
-    >>> b = torch.ones(8)
+    >>> b = torch.ones(2, 8)
     >>> a.slice_scatter(b, start=6)
     tensor([[0., 0., 0., 0., 0., 0., 0., 0.],
             [0., 0., 0., 0., 0., 0., 0., 0.],
@@ -9784,7 +9785,7 @@ Example::
             [1., 1., 1., 1., 1., 1., 1., 1.],
             [1., 1., 1., 1., 1., 1., 1., 1.]])
 
-    >>> b = torch.ones(2)
+    >>> b = torch.ones(8, 2)
     >>> a.slice_scatter(b, dim=1, start=2, end=6, step=2)
     tensor([[0., 0., 1., 0., 1., 0., 0., 0.],
             [0., 0., 1., 0., 1., 0., 0., 0.],
@@ -12436,6 +12437,8 @@ Examples:
     (105, 1, 21, 3)
     >>> torch.empty_permuted((2, 3, 5, 7), (0, 2, 3, 1)).stride()
     (105, 1, 21, 3)
+    >>> torch.empty_permuted((2, 3, 5, 7), (0, 2, 3, 1)).dim_order()
+    (0, 2, 3, 1)
 """.format(
         **factory_common_args
     ),
@@ -13786,8 +13789,10 @@ bucketize(input, boundaries, *, out_int32=False, right=False, out=None) -> Tenso
 
 Returns the indices of the buckets to which each value in the :attr:`input` belongs, where the
 boundaries of the buckets are set by :attr:`boundaries`. Return a new tensor with the same size
-as :attr:`input`. If :attr:`right` is False (default), then the left boundary is closed. More
-formally, the returned index satisfies the following rules:
+as :attr:`input`. If :attr:`right` is False (default), then the left boundary is open. Note that
+this behavior is opposite the behavior of
+`numpy.digitize <https://docs.scipy.org/doc/numpy/reference/generated/numpy.digitize.html>`_.
+More formally, the returned index satisfies the following rules:
 
 .. list-table::
    :widths: 15 85
