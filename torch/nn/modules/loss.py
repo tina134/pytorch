@@ -1216,7 +1216,7 @@ class MultiLabelSoftMarginLoss(_WeightedLoss):
 
     Shape:
         - Input: :math:`(N, C)` where `N` is the batch size and `C` is the number of classes.
-        - Target: :math:`(N, C)`, label targets padded by -1 ensuring same shape as the input.
+        - Target: :math:`(N, C)`, label targets must have the same shape as the input.
         - Output: scalar. If :attr:`reduction` is ``'none'``, then :math:`(N)`.
     """
     __constants__ = ['reduction']
@@ -1407,7 +1407,10 @@ class MultiMarginLoss(_WeightedLoss):
         super().__init__(weight, size_average, reduce, reduction)
         if p != 1 and p != 2:
             raise ValueError("only p == 1 and p == 2 supported")
-        assert weight is None or weight.dim() == 1
+        if weight is not None and weight.dim() != 1 :
+            raise ValueError(
+                f"MultiMarginLoss: expected weight to be None or 1D tensor, got {weight.dim()}D instead"
+            )
         self.p = p
         self.margin = margin
 
