@@ -3078,9 +3078,7 @@ class ExternKernel(InputsKernel):
             return x
         if isinstance(x, BaseView):
             x.realize()
-            if is_storage_and_layout(x.unwrap_view()) and not isinstance(
-                x.unwrap_view().data, ExternKernelAlloc
-            ):
+            if is_storage_and_layout(x.unwrap_view()):
                 try:
                     return cls.convert_to_reinterpret_view(x)
                 except NotImplementedError:
@@ -3721,14 +3719,26 @@ class FallbackKernel(ExternKernelAlloc):
 
         device = FallbackKernel.find_device(tensor_args, example_output)
         assert device, "Not sure where to find device info"
+        if isinstance(example_output, torch.Tensor):
+            layout = FixedLayout(
+                example_output.device,
+                example_output.dtype,
+                convert_shape_to_inductor(example_output.size()),
+                convert_shape_to_inductor(example_output.stride()),
+            )
+        else:
+            layout = MultiOutputLayout(device)
+
         packed = FallbackKernel(
-            MultiOutputLayout(device),
+            layout,
             kernel,
             tensor_args,
             non_tensor_args,
             unflatten_args,
             schema=schema,
         )
+        if isinstance(example_output, torch.Tensor):
+            return packed
 
         def generate_output(output, indices):
             if isinstance(output, (list, tuple)):
