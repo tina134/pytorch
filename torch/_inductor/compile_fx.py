@@ -503,7 +503,12 @@ def fx_codegen_and_compile(
         f"{'BACKWARDS' if is_backward else 'FORWARDS'} "
         f"graph {graph_id}",
     )
+
+    # breakpoint()
     V.debug.fx_graph(gm, example_inputs)
+
+
+    # V.debug.fx_graph_diagram(None, gm)
 
     shape_env = _shape_env_from_inputs(example_inputs)
 
@@ -523,6 +528,7 @@ def fx_codegen_and_compile(
     #
     # Also this has to be done before FakeTensorProp below to avoid the failed
     # .view() call.
+    gm_original = gm.__copy__()
     view_to_reshape(gm)
 
     fake_mode = fake_tensor_prop(gm, example_inputs)
@@ -562,7 +568,7 @@ def fx_codegen_and_compile(
                         )
                     else:
                         context.output_strides.append(None)
-            compiled_fn = graph.compile_to_fn()
+            compiled_fn = graph.compile_to_fn(gm_original)
 
             if graph.disable_cudagraphs:
                 BoxedBool.disable(cudagraphs)
