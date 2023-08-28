@@ -3,10 +3,13 @@ import unittest
 
 import torch
 import torch._dynamo
+import torch._inductor
+import torch._inductor.decomposition
 import torch._export
 from torch._higher_order_ops.out_dtype import out_dtype
 from torch.fx.experimental.proxy_tensor import make_fx
 from torch.testing._internal.common_utils import run_tests, TestCase
+from torch.testing._internal.common_quantization import skipIfNoDynamoSupport
 from torch.testing import FileCheck
 
 
@@ -151,6 +154,50 @@ class TestOutDtypeOp(TestCase):
             out = f(*inp)
             loss = out - torch.ones(out.shape)
             loss.backward()
+
+    @skipIfNoDynamoSupport
+    def test_out_dtype_inductor_decomp(self) -> None:
+        def func(x, w):
+            return out_dtype(torch.ops.aten.mm.default, torch.int32, x, w)
+
+        w = torch.randint(-128, 127, (32, 32), dtype=torch.int8, device="cuda")
+        x = torch.randint(-128, 127, (32, 32), dtype=torch.int8, device="cuda")
+
+        ref = torch._int_mm(x, w)
+        test_out = func(x, w)
+        func_comp = torch.compile(func, fullgraph=True, mode="max-autotune")
+        test_out_c = func_comp(x, w)
+        self.assertTrue(torch.allclose(ref, test_out))
+        self.assertTrue(torch.allclose(ref, test_out_c))
+
+    def test_out_dtype_inductor_decomp_trace(self) -> None:
+        def func(x, w):
+            return out_dtype(torch.ops.aten.mm.default, torch.int32, x, w)
+
+        w = torch.randint(-128, 127, (32, 32), dtype=torch.int8, device="cuda")
+        x = torch.randint(-128, 127, (32, 32), dtype=torch.int8, device="cuda")
+
+        # Check that make_fx with inductor decomps produces _int_mm
+        decomp_table = torch._inductor.decomposition.select_decomp_table()
+        gm = make_fx(func, decomp_table, tracing_mode="symbolic")(x, w)
+        self.assertExpectedInline(gm.code.strip(), """\
+def forward(self, x_1, w_1):
+    _int_mm = torch.ops.aten._int_mm.default(x_1, w_1);  x_1 = w_1 = None
+    return _int_mm""")
+
+    def test_out_dtype_default_trace(self) -> None:
+        def func(x, w):
+            return out_dtype(torch.ops.aten.mm.default, torch.int32, x, w)
+
+        w = torch.randint(-128, 127, (32, 32), dtype=torch.int8, device="cuda")
+        x = torch.randint(-128, 127, (32, 32), dtype=torch.int8, device="cuda")
+
+        # By default, out_dtype is preserved in the trace
+        gm = make_fx(func, tracing_mode="symbolic")(x, w)
+        self.assertExpectedInline(gm.code.strip(), """\
+def forward(self, x_1, w_1):
+    out_dtype = torch.ops.higher_order.out_dtype(torch.ops.aten.mm.default, torch.int32, x_1, w_1);  x_1 = w_1 = None
+    return out_dtype""")
 
     def test_out_dtype_wrong_output(self) -> None:
         def multiple_out(x):
